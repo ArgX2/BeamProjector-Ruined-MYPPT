@@ -6,15 +6,6 @@ PDF · PPTX · PNG · JPG · WEBP · BMP를 빔 프로젝터 환경으로 미리
 
 `index.html`을 Chrome 또는 Edge에서 엽니다. 설치·서버·인터넷 연결 없이 작동합니다. 라이브러리와 PDF 글꼴·문자 매핑 자료를 HTML에 포함했습니다. 파일은 서버에 업로드하지 않습니다.
 
-## GitHub Pages — ArgX2/BeamProjector-Ruined-MYPPT
-
-1. 이 폴더의 파일을 [저장소](https://github.com/ArgX2/BeamProjector-Ruined-MYPPT) 루트에 업로드합니다. `node_modules`는 제외합니다. `index.html`이 최상위에 있어야 합니다.
-2. 저장소 **Settings → Pages → Build and deployment**에서 **GitHub Actions**를 선택합니다.
-3. `main` 브랜치에 push하면 포함된 `.github/workflows/pages.yml`이 배포합니다. 이미 올렸다면 **Actions → Deploy BeamProjector Ruined MYPPT to GitHub Pages → Run workflow**로 실행합니다.
-4. 성공 후 기본 주소는 `https://argx2.github.io/BeamProjector-Ruined-MYPPT/`입니다. 실제 배포 상태는 저장소 Actions에서 확인하세요.
-
-빌드가 끝난 `index.html`이 포함되어 있어 GitHub에서 npm 빌드를 실행하지 않습니다. 워크플로는 HTML과 라이선스만 게시합니다. `.github` 폴더 없이 수동 업로드할 경우 Pages에서 **Deploy from a branch → main → /(root)**를 선택해도 됩니다. 프로젝트 하위 경로에도 그대로 배포할 수 있습니다.
-
 ## 사용
 
 - 파일을 끌어 놓거나 **파일 열기**를 누릅니다. 한 번에 한 파일, 최대 100MB.
