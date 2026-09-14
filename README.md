@@ -1,6 +1,6 @@
 # BeamProjector Ruined MYPPT
 
-PDF · PPTX · PNG · JPG · WEBP · BMP를 빔 프로젝터 환경으로 미리 보는 정적 웹 앱.
+PDF · PPTX · PNG · JPG · WEBP · BMP를 기껏 열심히 만들었지만, 빔 프로젝터가 열화시켰을 때의 아픔을 피하기 위해 미리 테스트해보세요.
 
 ## 실행
 
