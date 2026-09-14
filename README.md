@@ -1,0 +1,58 @@
+# BeamProjector Ruined MYPPT
+
+PDF · PPTX · PNG · JPG · WEBP · BMP를 빔 프로젝터 환경으로 미리 보는 정적 웹 앱.
+
+## 실행
+
+`index.html`을 Chrome 또는 Edge에서 엽니다. 설치·서버·인터넷 연결 없이 작동합니다. 라이브러리와 PDF 글꼴·문자 매핑 자료를 HTML에 포함했습니다. 파일은 서버에 업로드하지 않습니다.
+
+## GitHub Pages — ArgX2/BeamProjector-Ruined-MYPPT
+
+1. 이 폴더의 파일을 [저장소](https://github.com/ArgX2/BeamProjector-Ruined-MYPPT) 루트에 업로드합니다. `node_modules`는 제외합니다. `index.html`이 최상위에 있어야 합니다.
+2. 저장소 **Settings → Pages → Build and deployment**에서 **GitHub Actions**를 선택합니다.
+3. `main` 브랜치에 push하면 포함된 `.github/workflows/pages.yml`이 배포합니다. 이미 올렸다면 **Actions → Deploy BeamProjector Ruined MYPPT to GitHub Pages → Run workflow**로 실행합니다.
+4. 성공 후 기본 주소는 `https://argx2.github.io/BeamProjector-Ruined-MYPPT/`입니다. 실제 배포 상태는 저장소 Actions에서 확인하세요.
+
+빌드가 끝난 `index.html`이 포함되어 있어 GitHub에서 npm 빌드를 실행하지 않습니다. 워크플로는 HTML과 라이선스만 게시합니다. `.github` 폴더 없이 수동 업로드할 경우 Pages에서 **Deploy from a branch → main → /(root)**를 선택해도 됩니다. 프로젝트 하위 경로에도 그대로 배포할 수 있습니다.
+
+## 사용
+
+- 파일을 끌어 놓거나 **파일 열기**를 누릅니다. 한 번에 한 파일, 최대 100MB.
+- **원본 / 프로젝터**로 비교하고 슬라이더 또는 숫자 입력으로 열화 정도를 조절합니다.
+- **밝기**는 −70% ~ +70%로 낮추거나 높입니다. 0%는 원본 밝기입니다.
+- **블루밍 · 빛 번짐**은 0% ~ 100%로 밝은 영역이 주변으로 퍼지는 정도를 조절합니다. 초점 흐림과 독립적으로 작동합니다.
+- **프로젝터 해상도**에서 Full HD, WXGA, HD, XGA, SVGA, VGA를 선택하거나 가로·세로 값을 직접 입력합니다. 입력 범위는 가로 160~3840px, 세로 90~2160px입니다.
+- 해상도는 영상의 실제 픽셀 수를 바꾸며 하단 확대 배율과 독립적입니다. 원본 비율을 유지하므로 16:9 자료에 800×600을 선택하면 영상 영역은 800×450px입니다. 낮춘 영상을 같은 화면 크기로 확대해 픽셀과 글자 뭉개짐을 표현합니다.
+- **원본** 모드와 **원본 해상도**에서는 해상도 저하를 해제합니다. **초기화**도 해상도를 원본으로 되돌립니다. 환경 프리셋을 바꾸어도 선택한 프로젝터 해상도는 유지합니다.
+- **조절 패널** 버튼으로 우측 패널을 접고 펼칩니다.
+- 하단 **− / ＋**는 5% 간격, **화면에 맞추기**는 자동 배율입니다. 확대 후 스크롤로 이동합니다.
+- PDF·PPTX는 하단 페이지 번호나 이전·다음 버튼으로 이동합니다.
+- Space: 원본/프로젝터 전환. ← / →: 페이지 이동. 0: 화면에 맞추기. Ctrl/Cmd+O: 파일 열기.
+- **초기화**는 모든 열화 값을 0으로 만듭니다. 프리셋을 선택하면 기본 환경 값을 다시 적용합니다.
+
+## 범위
+
+프로젝터 실측 기반의 색 보정 도구가 아닌 근사 시뮬레이터입니다. 밝기, 대비, 채도, 주변광, 누런 색감, 흐림, 주변부 어두움, 블루밍을 조합합니다. 프리셋은 예시 환경입니다. 블루밍은 밝은 영역을 추출하고 흐리게 만든 복제 레이어를 screen 방식으로 합성하는 근사 효과이며 HDR 광학 시뮬레이션은 아닙니다.
+
+PPTX는 브라우저 렌더링 특성상 설치 글꼴, 일부 도형·차트·SmartArt·수식 등이 PowerPoint와 다를 수 있습니다. 동영상·오디오·애니메이션은 재생하지 않습니다. EMF의 PDF 대체 미리보기는 비활성화되어 있습니다. 배치 정확도가 중요하면 PowerPoint에서 PDF로 내보낸 파일을 사용하세요. 구형 `.ppt`와 암호화 문서는 지원하지 않습니다.
+
+PDF는 페이지별로 렌더링하며 최대 긴 변 약 2400px로 표시합니다. 더 큰 출력 해상도를 선택해도 원본에 없는 세부 정보가 추가되지는 않습니다. PPTX 해상도 변환은 현재 슬라이드를 이미지로 만든 뒤 적용합니다. 변환에 실패하면 패널에 안내하고 원본 선명도로 표시합니다. 매우 복잡한 파일은 시간이 걸릴 수 있습니다. 외부 연결을 차단하므로 외부 링크 그림은 표시되지 않습니다. 원본 파일은 수정하지 않습니다.
+
+## 수정 및 재빌드
+
+Node.js 22.13 이상에서:
+
+```sh
+npm ci
+npm run build
+```
+
+`src/index.html`, `src/style.css`, `src/app.js`를 수정한 뒤 빌드하면 루트 `index.html`에 합쳐집니다.
+
+## 사용 라이브러리
+
+- [PDF.js](https://github.com/mozilla/pdf.js) — Apache-2.0
+- [pptx-renderer](https://github.com/aiden0z/pptx-renderer) — Apache-2.0 (JSZip·ECharts 등 포함)
+- [esbuild](https://github.com/evanw/esbuild) — MIT, 빌드 도구
+
+고정 버전은 `package-lock.json`, 배포 라이선스는 `licenses/`를 참고하세요.

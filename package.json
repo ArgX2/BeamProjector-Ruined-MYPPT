@@ -1,0 +1,13 @@
+{
+  "name": "beamprojector-ruined-myppt",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@aiden0z/pptx-renderer": "1.3.0",
+    "esbuild": "0.28.2",
+    "pdfjs-dist": "6.3.289"
+  }
+}
