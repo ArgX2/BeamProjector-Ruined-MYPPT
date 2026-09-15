@@ -1,5 +1,5 @@
 # BeamProjector Ruined MYPPT
-
+(본 프로젝트는 ASTRA로 제작되었습니다.)
 PDF · PPTX · PNG · JPG · WEBP · BMP를 기껏 열심히 만들었지만, 빔 프로젝터가 열화시켰을 때의 아픔을 피하기 위해 미리 테스트해보세요.
 
 ## 실행
