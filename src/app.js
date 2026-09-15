@@ -1,6 +1,7 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import * as pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs';
 import {PptxViewer, parseZip, buildPresentation, RECOMMENDED_ZIP_LIMITS} from '@aiden0z/pptx-renderer/browser';
+import {drawTestSample} from './samples.js';
 
 // Bundled worker handler also works under file://, without fetching a worker script.
 globalThis.pdfjsWorker = pdfWorker;
@@ -9,6 +10,34 @@ function asset(name) { const raw = atob(pdfAssets[name] || ''); if (!raw) throw 
 class CMaps { async fetch({name}) { return {cMapData:asset(name+'.bcmap'),compressionType:1}; } }
 class Fonts { async fetch({filename}) { return asset(filename); } }
 const $ = id => document.getElementById(id);
+const backgroundControl=document.createElement('section');backgroundControl.className='background-control';
+backgroundControl.innerHTML='<label class="field-label" for="backgroundHex">미리보기 배경색</label><div class="color-field"><input id="backgroundPicker" type="color" value="#808080" aria-label="배경색 선택"><input id="backgroundHex" value="#808080" maxlength="7" spellcheck="false" aria-describedby="backgroundError" autocomplete="off"><button id="backgroundReset" title="기본 회색으로 복원" aria-label="배경색 초기화">↺</button></div><p id="backgroundError" role="status"></p>';
+document.querySelector('.resolution-control').before(backgroundControl);
+const sampleLabel=document.createElement('label');sampleLabel.htmlFor='sampleChoice';sampleLabel.className='field-label';sampleLabel.textContent='테스트 이미지';
+const sampleChoice=document.createElement('select');sampleChoice.id='sampleChoice';sampleChoice.innerHTML='<option value="current">기본 테스트</option><option value="palette">컬러 팔레트</option><option value="type">글꼴 · 굵기 비교</option>';
+$('sample').before(sampleLabel,sampleChoice);
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+function animateIn(el,offset=0){el.getAnimations().forEach(a=>a.cancel());if(!reducedMotion.matches)el.animate([{opacity:.5,translate:`${offset}px 0`},{opacity:1,translate:'0 0'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});}
+function savePreference(key,value){try{localStorage.setItem('beam-'+key,value);}catch{}}
+function readPreference(key,fallback){try{return localStorage.getItem('beam-'+key)||fallback;}catch{return fallback;}}
+let background='#808080';
+function setBackground(value){
+ if(!/^#[0-9a-f]{6}$/i.test(value)){$('backgroundHex').setAttribute('aria-invalid','true');$('backgroundError').textContent='#FFFFFF 형식으로 입력하세요.';return;}
+ background=value.toUpperCase();document.documentElement.style.setProperty('--preview-background',background);$('backgroundHex').value=background;$('backgroundPicker').value=background;$('backgroundHex').removeAttribute('aria-invalid');$('backgroundError').textContent='';savePreference('background',background);
+}
+function setTheme(dark){document.documentElement.dataset.theme=dark?'dark':'light';$('themeToggle').setAttribute('aria-pressed',dark);$('themeToggle').title=dark?'라이트모드로 전환':'다크모드로 전환';savePreference('theme',dark?'dark':'light');}
+setBackground(readPreference('background','#808080'));setTheme(readPreference('theme','light')==='dark');
+$('backgroundPicker').oninput=e=>setBackground(e.target.value);
+$('backgroundHex').oninput=e=>{if(/^#[0-9a-f]{6}$/i.test(e.target.value))setBackground(e.target.value);};
+$('backgroundHex').onchange=e=>setBackground(e.target.value);
+$('backgroundHex').onkeydown=e=>{if(e.key==='Enter')setBackground(e.target.value);if(e.key==='Escape')setBackground(background);};
+$('backgroundReset').onclick=()=>setBackground('#808080');
+$('themeToggle').onclick=()=>setTheme(document.documentElement.dataset.theme!=='dark');
+let previousView=null;
+$('fullscreen').onclick=async()=>{
+ try{if(document.fullscreenElement)await document.exitFullscreen();else{previousView={zoom,fitMode};await $('previewShell').requestFullscreen();}}catch{message('전체화면을 시작하지 못했습니다. 브라우저의 전체화면 권한을 확인하세요.',true);}
+};
+document.addEventListener('fullscreenchange',()=>{const active=document.fullscreenElement===$('previewShell');$('fullscreen').setAttribute('aria-pressed',active);$('fullscreen').setAttribute('aria-label',active?'전체화면 나가기':'전체화면');$('fullscreen').title=active?'전체화면 나가기 · Esc':'전체화면 · Esc로 나가기';if(active)fitMode=true;else if(previousView){zoom=previousView.zoom;fitMode=previousView.fitMode;previousView=null;}layout();});
 const definitions = [
   ['brightness','밝기',-70,70,1,'%'],['contrast','대비 저하',0,80,1,'%'],
   ['saturation','채도 저하',0,100,1,'%'],['ambient','주변광 · 흰색 번짐',0,60,1,'%'],
@@ -74,7 +103,7 @@ function chooseResolution(custom=false){
  updateResolution();
 }
 function message(text,error=false){$('message').textContent=text;$('message').classList.toggle('error',error);}
-function busyState(on){busy=on;document.body.classList.toggle('busy',on);$('file').disabled=on;$('open').disabled=on;$('sample').disabled=on;navigation();}
+function busyState(on){busy=on;document.body.classList.toggle('busy',on);$('previewShell').setAttribute('aria-busy',on);$('file').disabled=on;$('open').disabled=on;$('sample').disabled=on;$('sampleChoice').disabled=on;navigation();}
 function navigation(){$('prev').disabled=busy||current===0;$('next').disabled=busy||current>=total-1;$('page').disabled=busy;$('page').value=current+1;$('page').max=total;$('pageCount').textContent=`/ ${total}`;}
 function effect(){
  const p=mode==='projected';
@@ -85,9 +114,9 @@ function effect(){
  $('bloom').style.filter=`${base} brightness(0.7) contrast(5) blur(${2+values.bloom*.18}px)`;
  $('bloom').style.opacity=p?values.bloom/100:0;
  $('ambient').style.opacity=p?values.ambient/100:0;$('vignette').style.opacity=p?values.vignette/100:0;
- $('original').setAttribute('aria-pressed',!p);$('projected').setAttribute('aria-pressed',p);$('modeLabel').textContent=p?'프로젝터 미리보기':'원본 미리보기';
+ $('original').setAttribute('aria-pressed',!p);$('projected').setAttribute('aria-pressed',p);
 }
-function setMode(next){mode=next;effect();}
+function setMode(next){if(mode===next)return;mode=next;effect();animateIn($('stage'),next==='projected'?14:-14);}
 function refreshBloom(){
  const layer=$('bloom');layer.replaceChildren();
  const source=resolution&&rasterReady?$('rasterSurface'):$('surface');
@@ -135,7 +164,8 @@ function sample(){
  g.fillStyle='#17263e';g.font='24px "Malgun Gothic", sans-serif';g.fillText('큰 제목과 진한 글씨',72,625);
  g.fillStyle='#a9b1bc';g.font='17px "Malgun Gothic", sans-serif';g.fillText('옅은 글씨와 가는 선은 어떻게 보이나요?',690,625);
  g.strokeStyle='#dce2e9';g.beginPath();g.moveTo(690,642);g.lineTo(1200,642);g.stroke();
- $('surface').append(c);contentChanged();$('filename').textContent='색감 테스트 · 샘플';note='파일을 끌어 놓거나 ‘파일 열기’를 선택하세요.';message(note);fitMode=true;layout();navigation();effect();
+ drawTestSample(c,$('sampleChoice').value);c.setAttribute('role','img');c.setAttribute('aria-label',$('sampleChoice').selectedOptions[0].textContent);
+ $('surface').append(c);contentChanged();$('filename').textContent=$('sampleChoice').selectedOptions[0].textContent+' · 샘플';note='파일을 끌어 놓거나 ‘파일 열기’를 선택하세요.';message(note);fitMode=true;layout();navigation();effect();animateIn($('stage'));
 }
 async function renderPage(index){
  if(!doc)return;const token=++viewToken;pageHandle?.dispose();pageHandle=null;$('surface').replaceChildren();
@@ -150,7 +180,7 @@ async function renderPage(index){
   // Imported links and media are presentation content, never an interactive browser surface.
   $('surface').querySelectorAll('a,video,audio,iframe').forEach(el=>{el.removeAttribute('href');el.removeAttribute('src');el.setAttribute('tabindex','-1');});
  }
- current=index;contentChanged();navigation();layout();effect();
+ const direction=index>=current?10:-10;current=index;contentChanged();navigation();layout();effect();animateIn($('stage'),direction);
 }
 async function go(index){if(busy||!doc||!Number.isInteger(index)||index<0||index>=total){navigation();return;}busyState(true);try{await renderPage(index);message(note);}catch(e){message('페이지를 표시하지 못했습니다. 다른 페이지를 선택하거나 PDF로 다시 열어 주세요.',true);}finally{busyState(false);}}
 async function loadFile(file){
@@ -189,9 +219,33 @@ $('original').onclick=()=>setMode('original');$('projected').onclick=()=>setMode
 $('preset').onchange=e=>preset(e.target.value);$('reset').onclick=()=>{definitions.forEach(d=>setValue(d[0],0));$('resolution').value='native';chooseResolution();};
 $('resolution').onchange=()=>chooseResolution();
 for(const id of ['resolutionWidth','resolutionHeight'])$(id).onchange=()=>chooseResolution(true);
-$('sample').onclick=sample;$('minus').onclick=()=>zoomStep(-1);$('plus').onclick=()=>zoomStep(1);$('fit').onclick=()=>{fitMode=true;layout();};
+$('sample').onclick=sample;$('sampleChoice').onchange=sample;$('minus').onclick=()=>zoomStep(-1);$('plus').onclick=()=>zoomStep(1);$('fit').onclick=()=>{fitMode=true;layout();animateIn($('zoomValue'));};
 $('prev').onclick=()=>go(current-1);$('next').onclick=()=>go(current+1);$('page').onchange=e=>go(Number(e.target.value)-1);
-$('panelToggle').onclick=()=>{const hidden=!$('panel').hidden;$('panel').hidden=hidden;document.querySelector('main').classList.toggle('collapsed',hidden);$('panelToggle').setAttribute('aria-expanded',!hidden);$('panelToggle').title=hidden?'조절 패널 펼치기':'조절 패널 접기';layout();};
+let panelGhost=null;
+$('panelToggle').onclick=()=>{
+ panelGhost?.remove();panelGhost=null;
+ const stage=$('stage');stage.getAnimations().forEach(a=>a.cancel());const before=stage.getBoundingClientRect();
+ const hidden=!$('panel').hidden;
+ if(hidden&&!reducedMotion.matches){
+  const bounds=$('panel').getBoundingClientRect(),ghost=$('panel').cloneNode(true);ghost.removeAttribute('id');ghost.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));ghost.inert=true;ghost.setAttribute('aria-hidden','true');ghost.classList.add('panel-exit-ghost');
+  Object.assign(ghost.style,{position:'fixed',left:bounds.left+'px',top:bounds.top+'px',width:bounds.width+'px',height:bounds.height+'px',bottom:'auto',right:'auto',margin:'0',pointerEvents:'none',zIndex:6});document.body.append(ghost);ghost.scrollTop=$('panel').scrollTop;panelGhost=ghost;
+  ghost.animate([{opacity:1,translate:'0 0'},{opacity:0,translate:'24px 0'}],{duration:140,easing:'ease-in'}).finished.then(()=>ghost.remove(),()=>ghost.remove());
+ }
+ $('panel').hidden=hidden;document.querySelector('main').classList.toggle('collapsed',hidden);$('panelToggle').setAttribute('aria-expanded',!hidden);$('panelToggle').title=hidden?'조절 패널 펼치기':'조절 패널 접기';$('panelToggle').setAttribute('aria-label',$('panelToggle').title);layout();
+ if(!hidden)animateIn($('panel'),24);
+ if(!reducedMotion.matches){const after=stage.getBoundingClientRect();stage.animate([{transformOrigin:'0 0',transform:`translate(${before.x-after.x}px,${before.y-after.y}px) scale(${before.width/after.width},${before.height/after.height})`},{transformOrigin:'0 0',transform:'none'}],{duration:240,easing:'cubic-bezier(.2,.8,.2,1)'});}
+};
+let wheelLast=0,wheelTotal=0,wheelConsumed=false,wheelDirection=0;
+$('viewport').addEventListener('wheel',e=>{
+ // Keep browser zoom and modified scrolling available when inspecting an enlarged slide.
+ if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||total<2||!doc||Math.abs(e.deltaX)>Math.abs(e.deltaY)||!e.deltaY)return;
+ e.preventDefault();const now=performance.now(),direction=Math.sign(e.deltaY);
+ if(now-wheelLast>180){wheelTotal=0;wheelConsumed=false;}wheelLast=now;
+ if(busy){wheelConsumed=true;return;}if(wheelConsumed)return;
+ if(direction!==wheelDirection)wheelTotal=0;wheelDirection=direction;
+ wheelTotal+=Math.abs(e.deltaY)*(e.deltaMode===1?16:e.deltaMode===2?$('viewport').clientHeight:1);
+ if(wheelTotal<40)return;wheelConsumed=true;go(current+direction);
+},{passive:false});
 new ResizeObserver(layout).observe($('viewport'));
 let dragDepth=0;
 window.addEventListener('dragenter',e=>{if(e.dataTransfer?.types.includes('Files')){e.preventDefault();dragDepth++;document.body.classList.add('dragging');}});
