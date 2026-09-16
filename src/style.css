@@ -29,5 +29,7 @@ input[type=range]{appearance:none;height:24px;background:transparent;accent-colo
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 #panelToggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0}.panel-chevron{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform 240ms var(--motion-ease)}#panelToggle[aria-expanded=false] .panel-chevron{transform:rotate(180deg)}
+#screenFloor{position:absolute;inset:0;pointer-events:none;background:var(--preview-background);mix-blend-mode:screen}#screenHint{font-size:12px;line-height:1.5;color:var(--ui-muted);margin:8px 0 0}
+.screen-control{margin-top:16px;margin-bottom:0}.screen-control .value-box input{width:58px}
 .segmented button{flex:1;min-width:80px}.segmented::before{transition:transform 260ms cubic-bezier(.2,.85,.25,1)}.bottom .zoom{margin-left:auto}
 @media(max-width:720px){.segmented button{min-width:65px}}

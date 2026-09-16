@@ -11,8 +11,12 @@ class CMaps { async fetch({name}) { return {cMapData:asset(name+'.bcmap'),compre
 class Fonts { async fetch({filename}) { return asset(filename); } }
 const $ = id => document.getElementById(id);
 const backgroundControl=document.createElement('section');backgroundControl.className='background-control';
-backgroundControl.innerHTML='<label class="field-label" for="backgroundHex">미리보기 배경색</label><div class="color-field"><input id="backgroundPicker" type="color" value="#808080" aria-label="배경색 선택"><input id="backgroundHex" value="#808080" maxlength="7" spellcheck="false" aria-describedby="backgroundError" autocomplete="off"><button id="backgroundReset" title="기본 회색으로 복원" aria-label="배경색 초기화">↺</button></div><p id="backgroundError" role="status"></p>';
+backgroundControl.innerHTML='<label class="field-label" for="backgroundHex">스크린 · 배경색</label><div class="color-field"><input id="backgroundPicker" type="color" value="#808080" aria-label="스크린색 선택"><input id="backgroundHex" value="#808080" maxlength="7" spellcheck="false" aria-describedby="screenHint backgroundError" autocomplete="off"><button id="backgroundReset" title="기본 회색으로 복원" aria-label="스크린색 초기화">↺</button></div><p id="screenHint">프로젝터의 가장 어두운 검정 기준입니다.</p><p id="backgroundError" role="status"></p>';
 document.querySelector('.resolution-control').before(backgroundControl);
+for(const [key,label] of [['screenSaturation','스크린 채도'],['screenLightness','스크린 밝기']]){
+ const row=document.createElement('div');row.className='control screen-control';row.innerHTML=`<div class="control-head"><label for="${key}Range">${label}</label><div class="value-box"><input id="${key}Number" type="number" min="0" max="100" step="0.1" aria-label="${label} 값"><span>%</span></div></div><input id="${key}Range" type="range" min="0" max="100" step="0.1">`;backgroundControl.append(row);
+}
+const screenFloor=document.createElement('div');screenFloor.id='screenFloor';screenFloor.setAttribute('aria-hidden','true');$('stage').append(screenFloor);
 const sampleLabel=document.createElement('label');sampleLabel.htmlFor='sampleChoice';sampleLabel.className='field-label';sampleLabel.textContent='테스트 이미지';
 const sampleChoice=document.createElement('select');sampleChoice.id='sampleChoice';sampleChoice.innerHTML='<option value="current">기본 테스트</option><option value="palette">컬러 팔레트</option><option value="type">글꼴 · 굵기 비교</option>';
 $('sample').before(sampleLabel,sampleChoice);
@@ -20,10 +24,29 @@ const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
 function animateIn(el,offset=0){el.getAnimations().forEach(a=>a.cancel());if(!reducedMotion.matches)el.animate([{opacity:.5,translate:`${offset}px 0`},{opacity:1,translate:'0 0'}],{duration:180,easing:'cubic-bezier(.2,.8,.2,1)'});}
 function savePreference(key,value){try{localStorage.setItem('beam-'+key,value);}catch{}}
 function readPreference(key,fallback){try{return localStorage.getItem('beam-'+key)||fallback;}catch{return fallback;}}
-let background='#808080';
-function setBackground(value){
+let background='#808080',screenHue=0,screenSaturation=0,screenLightness=50;
+function syncScreenControls(){for(const [key,value] of [['screenSaturation',screenSaturation],['screenLightness',screenLightness]]){$(key+'Range').value=value.toFixed(1);$(key+'Number').value=Number(value.toFixed(1));}}
+function setBackground(value,fromSliders=false){
  if(!/^#[0-9a-f]{6}$/i.test(value)){$('backgroundHex').setAttribute('aria-invalid','true');$('backgroundError').textContent='#FFFFFF 형식으로 입력하세요.';return;}
  background=value.toUpperCase();document.documentElement.style.setProperty('--preview-background',background);$('backgroundHex').value=background;$('backgroundPicker').value=background;$('backgroundHex').removeAttribute('aria-invalid');$('backgroundError').textContent='';savePreference('background',background);
+ if(!fromSliders){
+  const [r,g,b]=background.slice(1).match(/../g).map(v=>parseInt(v,16)/255),max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+  screenLightness=(max+min)*50;screenSaturation=delta?delta/(1-Math.abs((max+min)-1))*100:0;
+  if(delta)screenHue=60*((max===r?(g-b)/delta+(g<b?6:0):max===g?(b-r)/delta+2:(r-g)/delta+4));
+ }
+ syncScreenControls();
+}
+function setScreenChannel(key,value){
+ if(!Number.isFinite(value))return;value=Math.round(Math.max(0,Math.min(100,value))*10)/10;
+ if(key==='screenSaturation')screenSaturation=value;else screenLightness=value;
+ const s=screenSaturation/100,l=screenLightness/100,a=s*Math.min(l,1-l);
+ const channel=n=>{const k=(n+screenHue/30)%12;return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0');};
+ setBackground('#'+channel(0)+channel(8)+channel(4),true);
+}
+for(const key of ['screenSaturation','screenLightness']){
+ $(key+'Range').oninput=e=>setScreenChannel(key,Number(e.target.value));
+ $(key+'Number').oninput=e=>{if(e.target.value!==''&&e.target.validity.valid)setScreenChannel(key,Number(e.target.value));};
+ $(key+'Number').onchange=e=>{if(e.target.value==='')syncScreenControls();else setScreenChannel(key,Number(e.target.value));};
 }
 function setTheme(dark){document.documentElement.dataset.theme=dark?'dark':'light';$('themeToggle').setAttribute('aria-pressed',dark);$('themeToggle').title=dark?'라이트모드로 전환':'다크모드로 전환';savePreference('theme',dark?'dark':'light');}
 setBackground(readPreference('background','#808080'));setTheme(readPreference('theme','light')==='dark');
@@ -114,6 +137,9 @@ function effect(){
  $('bloom').style.filter=`${base} brightness(0.7) contrast(5) blur(${2+values.bloom*.18}px)`;
  $('bloom').style.opacity=p?values.bloom/100:0;
  $('ambient').style.opacity=p?values.ambient/100:0;$('vignette').style.opacity=p?values.vignette/100:0;
+ // Composite after dimming, bloom and vignette: C_out = B + (1 - B) * C_in.
+ // Screen blend preserves white and cannot project a value darker than the screen baseline B.
+ screenFloor.hidden=!p;
  $('original').setAttribute('aria-pressed',!p);$('projected').setAttribute('aria-pressed',p);
 }
 function setMode(next){if(mode===next)return;mode=next;effect();animateIn($('stage'),next==='projected'?14:-14);}
